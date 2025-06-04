@@ -7,11 +7,11 @@ import * as blazeface from '@tensorflow-models/blazeface';
 
 //Project constants
 const EMOTION_CLASSIFICATION_MODEL_URL = '/model/model.json';
-const TF_BACKEND = 'cpu'; // 
+const TF_BACKEND = 'cpu';
 const CLASSIFIER_IMG_DIMENSIONS = [48, 48]; //Image dimensions required for emtion classification
 const PREDICTION_INTERVAL_MS = 250; //Time interval between each detection in ms
 
-// تعريف المشاعر والرموز التعبيرية المقابلة
+
 const EMOTION = {
     0: { label: 'angry', emoji: '😠' },
     1: { label: 'disgust', emoji: '🤢' },
@@ -22,7 +22,7 @@ const EMOTION = {
     6: { label: 'neutral', emoji: '😐' },
 };
 
-// متغيرات لتخزين النماذج المحملة لتجنب إعادة التحميل المتكرر
+
 let emotionClassifierModel = null;
 let blazefaceModel = null;
 const EMOTION_MODEL_STORAGE_NAME = 'emotion-classifier-model';
@@ -66,10 +66,10 @@ const loadTfModels = async () => {
 };
 
 /**
- * يكتشف الوجوه في عنصر الفيديو ويعيد مواقعها مربعة.
- * @param {HTMLVideoElement} videoElement عنصر الفيديو الذي يتم تحليله.
- * @returns {Array<Object>} مصفوفة من كائنات الوجه المكتشفة، كل منها يحتوي على topLeft و bottomRight.
- */
+* Detects faces in a video element and returns their squared positions.
+* @param {HTMLVideoElement} videoElement The video element being parsed.
+* @returns {Array<Object>} An array of detected face objects, each with a topLeft and bottomRight value.
+*/
 const getFacesRects = async (videoElement) => {
     if (!blazefaceModel) {
         console.error('The blazeface model has not been loaded yet');
@@ -109,11 +109,11 @@ const getFacesRects = async (videoElement) => {
 };
 
 /**
- * يقص صورة الوجه من التنسور الأصلي ويعالجها لتكون جاهزة لنموذج تصنيف المشاعر.
- * @param {tf.Tensor} imgTensor التنسور الكامل للصورة الأصلية.
- * @param {Object} position كائن يحتوي على topLeft و bottomRight للوجه المكتشف.
- * @returns {tf.Tensor} تنسور صورة الوجه المعالج (48x48، تدرج رمادي، مطبع).
- */
+* Trims the face image from the original tensor and processes it to be ready for the emotion classification model.
+* @param {tf.Tensor} imgTensor The full tensor of the original image.
+* @param {Object} position An object containing the topLeft and bottomRight of the detected face.
+* @returns {tf.Tensor} The tensor of the processed face image (48x48, grayscale, normalized).
+*/
 const getFaceImage = async (imgTensor, position) => {
     const imgDimensions = tf.tensor2d([imgTensor.shape[1], imgTensor.shape[2]], [1, 2]);
 
@@ -146,12 +146,12 @@ const classifyEmotion = async (img) => {
 };
 
 /**
- * يرسم مربعات الوجوه والمشاعر على عنصر الـ Canvas.
- * @param {CanvasRenderingContext2D} canvasCtx سياق رسم الـ Canvas.
- * @param {HTMLVideoElement} videoElement عنصر الفيديو لضبط الأبعاد.
- * @param {Array<Object>} facePositions مصفوفة مواقع الوجوه.
- * @param {Array<Object>} emotions مصفوفة المشاعر المقابلة لكل وجه.
- */
+* Draws face and emotion boxes on the Canvas element.
+* @param {CanvasRenderingContext2D} canvasCtx The canvas drawing context.
+* @param {HTMLVideoElement} videoElement The video element to set the dimensions.
+* @param {Array<Object>} facePositions The array of face positions.
+* @param {Array<Object>} emotions The array of emotions corresponding to each face.
+*/
 const drawResults = (canvasCtx, videoElement, facePositions, emotions) => {
     canvasCtx.clearRect(0, 0, videoElement.videoWidth, videoElement.videoHeight);
 
@@ -174,19 +174,16 @@ const drawResults = (canvasCtx, videoElement, facePositions, emotions) => {
     });
 };
 
-// -----------------------------------------------------
-// مكون React الرئيسي EmotionDetector
-// -----------------------------------------------------
 
 const EmotionDetector = () => {
     const videoRef = useRef(null);
     const canvasRef = useRef(null);
     const [isDetecting, setIsDetecting] = useState(false);
     const [loadingModels, setLoadingModels] = useState(true);
-    const [detectedFacesData, setDetectedFacesData] = useState([]); // <-- حالة جديدة لتخزين بيانات الوجوه
+    const [detectedFacesData, setDetectedFacesData] = useState([]); // <-- useState for storing face data
     const intervalIdRef = useRef(null);
 
-    // useEffect لتحميل النماذج عند تحميل المكون لأول مرة
+
     useEffect(() => {
         const setupTf = async () => {
             try {
@@ -202,7 +199,7 @@ const EmotionDetector = () => {
         setupTf();
     }, []);
 
-    // دالة لبدء عملية اكتشاف الوجه والمشاعر
+    //Function to start the discovery process
     const startDetection = useCallback(async () => {
         if (loadingModels) {
             console.log("Models are still loading , please wait..");
@@ -246,23 +243,20 @@ const EmotionDetector = () => {
                             const faceImageTensor = await getFaceImage(imgTensor, position);
                             const emotion = await classifyEmotion(faceImageTensor);
 
-                            // --- الجزء المعدل: استخدام tf.browser.draw لزيادة الكفاءة ---
+
                             const tempCanvas = document.createElement('canvas');
                             tempCanvas.width = CLASSIFIER_IMG_DIMENSIONS[0];
                             tempCanvas.height = CLASSIFIER_IMG_DIMENSIONS[1];
 
-                            // tf.browser.draw يتوقع تنسورًا ذو 3 قنوات (RGB) أو 4 قنوات (RGBA).
-                            // faceImageTensor لديك هو تدرج رمادي (قناة واحدة).
-                            // لذا، نقوم بتكرار القناة الواحدة إلى 3 قنوات للعرض.
                             const faceImgRgb = faceImageTensor.tile([1, 1, 1, 3]);
 
-                            await tf.browser.draw(faceImgRgb.squeeze(), tempCanvas); // استخدام squeeze() لإزالة بُعد الدفعة
+                            await tf.browser.draw(faceImgRgb.squeeze(), tempCanvas);
                             const imageDataUrl = tempCanvas.toDataURL('image/png');
 
 
-                            // التخلص من التنسورات المؤقتة لمنع تسرب الذاكرة
+
                             faceImageTensor.dispose();
-                            faceImgRgb.dispose(); // التخلص من التنسور المكرر أيضًا
+                            faceImgRgb.dispose();
 
                             return {
                                 position,
@@ -276,7 +270,7 @@ const EmotionDetector = () => {
                 } catch (error) {
                     console.error("Error in the detection or classification process : ", error);
                 } finally {
-                    imgTensor.dispose(); // التخلص من تنسور إطار الفيديو الأصلي
+                    imgTensor.dispose();
                 }
 
                 setDetectedFacesData(currentDetectedFaces);
@@ -297,7 +291,7 @@ const EmotionDetector = () => {
         }
     }, [loadingModels, isDetecting]);
 
-    // دالة لإيقاف عملية الاكتشاف
+    // Function to stop the discovery process
     const stopDetection = useCallback(() => {
         if (videoRef.current && videoRef.current.srcObject) {
             videoRef.current.srcObject.getTracks().forEach(track => track.stop());
@@ -311,11 +305,11 @@ const EmotionDetector = () => {
             canvasRef.current.getContext('2d').clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
         }
         setIsDetecting(false);
-        setDetectedFacesData([]); // مسح الوجوه المكتشفة عند الإيقاف
+        setDetectedFacesData([]);
         console.log('Analysis has been stopped.');
     }, []);
 
-    // useEffect للتنظيف عند إلغاء تحميل المكون
+    // useEffect to clean up when the component is unloaded
     useEffect(() => {
         return () => {
             stopDetection();
@@ -367,7 +361,7 @@ const EmotionDetector = () => {
                 </button>
             </div>
 
-            {/* قسم عرض الوجوه المكتشفة */}
+            {/* Display detected faces section */}
             <h2 className="text-2xl font-bold text-gray-700 mt-5 mb-4 text-center">Detected Faces</h2>
             <div className="flex flex-wrap justify-center gap-4 p-4 border border-gray-200 rounded-lg bg-gray-50 max-w-full">
                 {detectedFacesData.length > 0 ? (

@@ -1,12 +1,12 @@
 'use client';
-// استخدام next/dynamic لتحميل المكون ديناميكيًا على جانب العميل فقط
+// Use next/dynamic to dynamically load the component on the client side only
 import dynamic from 'next/dynamic';
 
-// إنشاء مكون ديناميكي
+// Create a dynamic component
 const DynamicEmotionDetector = dynamic(
   () => import('../components/EmotionDetector.js'),
   {
-    ssr: false, // هذا يضمن أن المكون لن يتم عرضه على الخادم (Server-Side Rendering)
+    ssr: false, // This ensures that the component will not be rendered on the server (Server-Side Rendering)
     loading: () => <p>Loading Emotion Detector</p>,
   }
 );
