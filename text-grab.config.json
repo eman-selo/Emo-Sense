@@ -1,0 +1,17 @@
+{
+    "extensions": [
+        "*.js",
+        "*.jsx",
+        "*.ts",
+        "*.tsx",
+        "*.module.css"
+    ],
+    "searchPath": ".",
+    "exclude": [
+        ".next",
+        "node_modules",
+        "out",
+        ".git"
+    ],
+    "template": "nextjs"
+}
